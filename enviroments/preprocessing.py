@@ -180,7 +180,10 @@ class MarioWrapper(gym.Wrapper):
         # Reward shaping to densify signal
         shaped_reward = self._shape_reward(total_reward, info, done)
         
-        return self.frame_stack.get_state(), shaped_reward, done, info
+        print(f"obs:")
+        print(obs)
+        
+        return self.frame_stack.get_state(), shaped_reward, done, info, obs
     
     def _shape_reward(self, reward, info, done):
         """

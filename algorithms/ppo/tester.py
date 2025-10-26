@@ -14,10 +14,13 @@ import argparse
 import numpy as np
 import torch
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 # Project modules
 from configs.ppo_config import Config
-from enviroments.mario_env import create_mario_environment, MultiWorldMarioEnvironment
+# from enviroments.mario_env import create_mario_environment, MultiWorldMarioEnvironment
+from enviroments.mario_env import create_mario_environment
 from algorithms.ppo.ppo import create_ppo_algorithm
 from algorithms.ppo.base import ModelManager
 
@@ -117,13 +120,14 @@ class PPOTester:
         render_mode = self.args.render_mode if self.args.render else None
         
         if self.args.worlds:
+            assert False
             # Multi-world testing
-            self.env = MultiWorldMarioEnvironment(
-                worlds=self.args.worlds,
-                render_mode=render_mode,
-                random_start=True
-            )
-            print(f"Multi-worlds: {self.args.worlds}")
+            # self.env = MultiWorldMarioEnvironment(
+            #     worlds=self.args.worlds,
+            #     render_mode=render_mode,
+            #     random_start=True
+            # )
+            # print(f"Multi-worlds: {self.args.worlds}")
         else:
             # Single world
             self.env = create_mario_environment(
@@ -157,6 +161,7 @@ class PPOTester:
         rewards_received = []
         values_estimated = []
         action_probs_history = []
+        video_frames = []
         
         done = False
         start_time = time.time()
@@ -181,13 +186,21 @@ class PPOTester:
             actions_taken.append(action)
             
             # Step env
-            next_observation, reward, done, info = self.env.step(action)
+            next_observation, reward, done, info, obs = self.env.step(action)
+            
+            # print(f"next_observation shape: {next_observation.shape}")
+            print(f"obs shape: {obs.shape}")
+            
             
             # Render
             if self.args.render:
                 self.env.render()
                 time.sleep(self.args.render_delay)  # slow down for visibility
             
+            if self.args.save_video:
+                import copy
+                video_frames.append(copy.deepcopy(obs))
+              
             # Update counters
             episode_reward += reward
             episode_length += 1
@@ -195,11 +208,46 @@ class PPOTester:
             
             # Live info
             if episode_length % 100 == 0:
-                print(f"  Steps: {episode_length}, Reward: {episode_reward:.2f}, Action: {action}")
+                print(f"Steps: {episode_length}, Reward: {episode_reward:.2f}, Action: {action}")
             
             # Prepare next step
             observation = torch.FloatTensor(next_observation).unsqueeze(0).to(self.device)
         
+        if self.args.save_video and len(video_frames) > 0:
+            print(len(video_frames))
+            # assert False
+            # print(self.args.model_path)
+            # print(np.array_equal(video_frames[0], video_frames[1]))
+            # print(np.array_equal(video_frames[0], video_frames[len(video_frames) - 1]))
+            model_filename = os.path.basename(self.args.model_path)
+            model_name = os.path.splitext(model_filename)[0]
+            model_dir = os.path.dirname(self.args.model_path)
+            video_path = os.path.join(model_dir, f"{model_name}_episode{episode_num + 1}.mp4")
+            images = video_frames
+            frame_height, frame_width = images[0].shape[:2]
+            dpi = 40
+            fig, ax = plt.subplots(figsize=(frame_width // 4, frame_height // 4), dpi=dpi)
+            ax.axis('off')
+            
+            def init():
+                img = ax.imshow(images[0])
+                return [img]
+            
+            def update(frame):
+                ax.clear()
+                ax.axis('off')
+                img = ax.imshow(frame)
+                return [img]
+
+            anim = animation.FuncAnimation(
+                fig, update, frames=video_frames,
+                init_func=init
+            )
+            anim.save(video_path, writer='ffmpeg', fps=30, dpi=100)
+            plt.close(fig)
+
+            print(f"episode {episode_num + 1} saved to: {video_path}")
+
         # Episode summary
         episode_time = time.time() - start_time
         

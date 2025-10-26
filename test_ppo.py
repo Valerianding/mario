@@ -37,7 +37,7 @@ def parse_args():
                        help='multi-world testing')
     parser.add_argument('--deterministic', action='store_true',
                        help='use deterministic policy')
-    parser.add_argument('--render', action='store_true', default=True,
+    parser.add_argument('--render', action='store_true', default=False,
                        help='render gameplay')
     parser.add_argument('--render_mode', type=str, default='human',
                        choices=['human', 'rgb_array'],
@@ -70,7 +70,12 @@ def main():
     try:
         tester_module = importlib.import_module(f"algorithms.{args.algo}.tester")
         tester_class = getattr(tester_module, f"{args.algo.upper()}Tester")
+        print(args.algo.upper())
     except (ImportError, AttributeError):
+        tester_module = importlib.import_module(f"algorithms.{args.algo}.tester")
+        # print(tester_module)
+        # print(args.algo.upper())
+        # print(args.algo)
         print(f"Error: Could not find tester for algorithm '{args.algo}'."
               f"Make sure you have a 'tester.py' file with a '{args.algo.upper()}Tester' class in the 'algorithms/{args.algo}' directory.")
         return

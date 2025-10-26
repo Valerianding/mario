@@ -106,14 +106,14 @@ class MarioEnvironment:
         Returns:
             tuple: (next_state, reward, done, info)
         """
-        next_state, reward, done, info = self.env.step(action)
+        next_state, reward, done, info, obs = self.env.step(action)
         self.total_steps += 1
         
         if not isinstance(info, dict):
             info = {'raw_info': info}
         info.setdefault('world', self.world)
 
-        return next_state, reward, done, info
+        return next_state, reward, done, info, obs
     
     def render(self, mode='human'):
         """

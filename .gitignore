@@ -1,7 +1,9 @@
 *.pyc
-__pycache__/
+*/__pycache__/
+.vscode/
 
 logs/*
 models/*
 test_output/*
 dev_doc/*
+*.egg-info/
